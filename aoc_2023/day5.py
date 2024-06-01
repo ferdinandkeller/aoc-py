@@ -1,87 +1,136 @@
 """Solutions for day 5."""
 
 import re
-from typing import List, Tuple, Optional
-
-Map = Tuple[int, int, int]
-MapList = List[Map]
-TargetSourceMap = Tuple[Tuple[str, str], MapList]
-Instruction = Tuple[List[int], List[TargetSourceMap]]
+from typing import List, Tuple, Optional, Callable
+from dataclasses import dataclass
 
 
-def ranges_intersection(
-    r1: Tuple[int, int], r2: Tuple[int, int]
-) -> Optional[Tuple[int, int]]:
+@dataclass
+class SourcedRanges:
+    """Sourced range."""
+
+    source: str
+    ranges: List[range]
+
+
+@dataclass
+class MapDescription:
+    """Map description."""
+
+    map_range: range
+    delta: int
+
+
+@dataclass
+class MapTable:
+    """Target map description."""
+
+    source: str
+    target: str
+    maps_descriptions: List[MapDescription]
+
+
+@dataclass
+class Instructions:
+    """Mapping instruction."""
+
+    seeds: List[SourcedRanges]
+    targets: List[MapTable]
+
+
+@dataclass
+class RangeSplit:
+    """Range split."""
+
+    matching: range
+    remaining: List[range]
+
+
+def ranges_intersection(r1: range, r2: range) -> Optional[range]:
     """Find the intersection of two ranges."""
-    if not (r1[1] <= r2[0] or r2[1] <= r1[0]):
-        return (max(r1[0], r2[0]), min(r1[1], r2[1]))
+    if not (r1.stop <= r2.start or r2.stop <= r1.start):
+        return range(max(r1.start, r2.start), min(r1.stop, r2.stop))
     return None
 
 
-def ranges_sub(r1: Tuple[int, int], r2: Tuple[int, int]) -> List[Tuple[int, int]]:
+def ranges_sub(r1: range, r2: range) -> List[range]:
     """Subtract two ranges."""
-    if r1[1] <= r2[0] or r2[1] <= r1[0]:
+    if r1.end <= r2.start or r2.end <= r1.start:
         return [r1]
-    if r2[0] <= r1[0] and r1[1] <= r2[1]:
+    if r2.start <= r1.start and r1.end <= r2.end:
         return []
-    if r1[0] < r2[0] and r2[1] < r1[1]:
-        return [(r1[0], r2[0]), (r2[1], r1[1])]
-    if r1[0] <= r2[0]:
-        return [(r1[0], r2[0])]
-    if r2[1] <= r1[1]:
-        return [(r2[1], r1[1])]
+    if r1.start < r2.start and r2.end < r1.end:
+        return [(r1.start, r2.start), (r2.end, r1.end)]
+    if r1.start <= r2.start:
+        return [(r1.start, r2.start)]
+    if r2.end <= r1.end:
+        return [(r2.end, r1.end)]
     raise Exception("This should not happen.")  # pylint: disable=broad-exception-raised
 
 
-def join_ranges(ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+def join_ranges(ranges: List[range]) -> List[range]:
     """Join ranges."""
     split_ranges = []
     for r in ranges:
-        split_ranges.append(("start", r[0]))
-        split_ranges.append(("end", r[1]))
-    split_ranges.sort(key=lambda x: (x[1], 0 if x[0] == "start" else 1))
+        split_ranges.append((r.start, 0))
+        split_ranges.append((r.stop, 1))
+    split_ranges.sort()
     result = []
     state = 0
     tmp = None
     for value in split_ranges:
-        if value[0] == "start":
+        if value[1] == 0:
             state += 1
             if state == 1:
-                tmp = value[1]
-        if value[0] == "end":
+                tmp = value[0]
+        if value[1] == 1:
             state -= 1
             if state == 0:
-                result.append((tmp, value[1]))
+                result.append(range(tmp, value[0]))
     return result
 
 
 def split_range(
-    r1: Tuple[int, int], r2: Tuple[int, int]
-) -> Tuple[Tuple[int, int], List[Tuple[int, int]]]:
+    r1: range,
+    r2: range,
+) -> RangeSplit:
     """Apply a range to another range."""
     matching = ranges_intersection(r1, r2)
     remaining = ranges_sub(r1, r2)
-    return (matching, remaining)
+    return RangeSplit(matching, remaining)
 
 
-def slide_range(r: Tuple[int, int], delta: int) -> Tuple[int, int]:
+def slide_range(r: range, delta: int) -> range:
     """Move a range."""
-    return (r[0] + delta, r[1] + delta)
+    return range(r.start + delta, r.stop + delta)
 
 
-def parse_instructions(parse_seed, instructions: str) -> Instruction:
-    """Parse the instructions."""
-    instructions = instructions.split("\n\n")
-    seeds = parse_seed(instructions[0])
-    parsed = []
-    for instruction in instructions[1:]:
-        parsed.append(parse_instruction(instruction))
-    return (seeds, parsed)
+def parse_seeds_v1(raw_seeds: str) -> List[SourcedRanges]:
+    """Parse the seed (version 1)."""
+    r = re.compile(r"(\d+)")
+    return [
+        SourcedRanges(source="seed", ranges=range(int(n), int(n) + 1))
+        for n in r.findall(raw_seeds)
+    ]
 
 
-def parse_instruction(instruction: str) -> TargetSourceMap:
+def parse_seeds_v2(seeds: str) -> List[SourcedRanges]:
+    """Parse the seeds (version 2)."""
+    r = re.compile(r"(\d+)")
+    numbers = [int(n) for n in r.findall(seeds)]
+    out = []
+    for i in range(0, len(numbers), 2):
+        out.append(
+            SourcedRanges(
+                source="seed", ranges=range(numbers[i], numbers[i] + numbers[i + 1])
+            )
+        )
+    return out
+
+
+def parse_instruction(block: str) -> MapTable:
     """Parse a single instruction."""
-    lines = instruction.split("\n")
+    lines = block.split("\n")
     text = lines[0]
     values = lines[1:]
     r1 = re.compile(r"(\w+)-to-(\w+) map:")
@@ -89,75 +138,77 @@ def parse_instruction(instruction: str) -> TargetSourceMap:
     source = m.group(1)
     target = m.group(2)
     r2 = re.compile(r"(\d+)")
-    numbers = []
+    maps_descriptions: List[MapDescription] = []
     for value in values:
-        numbers.append([int(n) for n in r2.findall(value)])
-    return ((source, target), numbers)
+        single_map = [int(n) for n in r2.findall(value)]
+        maps_descriptions.append(
+            MapDescription(
+                map_range=range(single_map[1], single_map[1] + single_map[2]),
+                delta=single_map[0] - single_map[1],
+            )
+        )
+    return MapTable(source, target, maps_descriptions)
 
 
-def parse_seeds_v1(seeds: str) -> List[Tuple[int, int]]:
-    """Parse the seeds."""
-    r = re.compile(r"(\d+)")
-    return [(int(n), int(n) + 1) for n in r.findall(seeds)]
-
-
-def parse_seeds_v2(seeds: str) -> List[Tuple[int, int]]:
-    """Parse the seeds."""
-    r = re.compile(r"(\d+)")
-    numbers = [int(n) for n in r.findall(seeds)]
-    out = []
-    for i in range(0, len(numbers), 2):
-        out.append((numbers[i], numbers[i] + numbers[i + 1]))
-    return out
-
-
-def convert(value: Tuple[str, int], tables: List[TargetSourceMap]) -> Tuple[str, int]:
-    """Find which table to use."""
-    for table in tables:
-        if table[0][0] == value[0]:
-            return (table[0][1], convert_using_table(value[1], table))
+def parse_instructions(
+    parse_seed_fn: Callable[[str], List[range]], raw_instructions: str
+) -> Instructions:
+    """Parse the instructions."""
+    blocks = raw_instructions.split("\n\n")
+    seeds = parse_seed_fn(blocks[0])
+    targets = []
+    for block in blocks[1:]:
+        targets.append(parse_instruction(block))
+    return Instructions(seeds, targets)
 
 
 def convert_using_table(
-    values: List[Tuple[int, int]], table: TargetSourceMap
-) -> List[Tuple[int, int]]:
+    sourced_ranges: SourcedRanges, table: MapTable
+) -> SourcedRanges:
     """Convert the value using the table."""
-    unprocessed = values
+    unprocessed = sourced_ranges.ranges
     processed = []
-    for custom_map in table[1]:
-        delta = custom_map[0] - custom_map[1]
-        filter_range = (custom_map[1], custom_map[1] + custom_map[2])
+    for map_description in table.maps_descriptions:
         matching = []
         remaining = []
         for value in unprocessed:
-            (mat, rem) = split_range(value, filter_range)
-            remaining += rem
-            if mat is None:
+            range_split = split_range(value, map_description.map_range)
+            remaining += range_split.remaining
+            if range_split.matching is None:
                 continue
-            matching.append(slide_range(mat, delta))
+            matching.append(slide_range(range_split.matching, map_description.delta))
         unprocessed = remaining
         processed += matching
     return processed + unprocessed
 
 
-def solve(seeds: List[Tuple[int, int]], instructions: List[TargetSourceMap]) -> int:
+def convert(sourced_range: SourcedRanges, tables: List[MapTable]) -> SourcedRanges:
+    """Find which table to use."""
+    for table in tables:
+        if table.source == sourced_range.source:
+            return SourcedRanges(
+                source=table.target,
+                ranges=convert_using_table(sourced_range, table),
+            )
+
+
+def solve(instructions: Instructions) -> int:
     """Solve the problem."""
     locations = []
-    for seed in seeds:
-        v = ("seed", [seed])
-        while v[0] != "location":
-            v = convert(v, instructions)
-        locations += v[1]
-    return min([v[0] for v in locations])
+    for seed in instructions.seeds:
+        while seed.source != "location":
+            seed = convert(seed, instructions)
+        locations += seed.ranges
+    return min([v.start for v in locations])
 
 
 def part1(problem: str) -> int:
     """Solution for part 1."""
-    (seeds, instructions) = parse_instructions(parse_seeds_v1, problem)
-    return solve(seeds, instructions)
+    instructions = parse_instructions(parse_seeds_v1, problem)
+    return solve(instructions)
 
 
 def part2(problem: str) -> int:
     """Solution for part 2."""
-    (seeds, instructions) = parse_instructions(parse_seeds_v2, problem)
-    return solve(seeds, instructions)
+    instructions = parse_instructions(parse_seeds_v2, problem)
+    return solve(instructions)
