@@ -1,7 +1,7 @@
 """Solutions for day 5."""
 
 import re
-from typing import List, Tuple, Optional, Callable
+from typing import List, Optional, Callable
 from dataclasses import dataclass
 
 
@@ -35,7 +35,7 @@ class Instructions:
     """Mapping instruction."""
 
     seeds: List[SourcedRanges]
-    targets: List[MapTable]
+    tables: List[MapTable]
 
 
 @dataclass
@@ -55,16 +55,16 @@ def ranges_intersection(r1: range, r2: range) -> Optional[range]:
 
 def ranges_sub(r1: range, r2: range) -> List[range]:
     """Subtract two ranges."""
-    if r1.end <= r2.start or r2.end <= r1.start:
+    if r1.stop <= r2.start or r2.stop <= r1.start:
         return [r1]
-    if r2.start <= r1.start and r1.end <= r2.end:
+    if r2.start <= r1.start and r1.stop <= r2.stop:
         return []
-    if r1.start < r2.start and r2.end < r1.end:
-        return [(r1.start, r2.start), (r2.end, r1.end)]
+    if r1.start < r2.start and r2.stop < r1.stop:
+        return [range(r1.start, r2.start), range(r2.stop, r1.stop)]
     if r1.start <= r2.start:
-        return [(r1.start, r2.start)]
-    if r2.end <= r1.end:
-        return [(r2.end, r1.end)]
+        return [range(r1.start, r2.start)]
+    if r2.stop <= r1.stop:
+        return [range(r2.stop, r1.stop)]
     raise Exception("This should not happen.")  # pylint: disable=broad-exception-raised
 
 
@@ -109,7 +109,7 @@ def parse_seeds_v1(raw_seeds: str) -> List[SourcedRanges]:
     """Parse the seed (version 1)."""
     r = re.compile(r"(\d+)")
     return [
-        SourcedRanges(source="seed", ranges=range(int(n), int(n) + 1))
+        SourcedRanges(source="seed", ranges=[range(int(n), int(n) + 1)])
         for n in r.findall(raw_seeds)
     ]
 
@@ -118,14 +118,14 @@ def parse_seeds_v2(seeds: str) -> List[SourcedRanges]:
     """Parse the seeds (version 2)."""
     r = re.compile(r"(\d+)")
     numbers = [int(n) for n in r.findall(seeds)]
-    out = []
+    sourced_ranges = []
     for i in range(0, len(numbers), 2):
-        out.append(
+        sourced_ranges.append(
             SourcedRanges(
-                source="seed", ranges=range(numbers[i], numbers[i] + numbers[i + 1])
+                source="seed", ranges=[range(numbers[i], numbers[i] + numbers[i + 1])]
             )
         )
-    return out
+    return sourced_ranges
 
 
 def parse_instruction(block: str) -> MapTable:
@@ -197,7 +197,7 @@ def solve(instructions: Instructions) -> int:
     locations = []
     for seed in instructions.seeds:
         while seed.source != "location":
-            seed = convert(seed, instructions)
+            seed = convert(seed, instructions.tables)
         locations += seed.ranges
     return min([v.start for v in locations])
 
