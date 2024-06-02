@@ -1,24 +1,7 @@
+"""Solutions for day 3."""
+
 from typing import Tuple, List
 import re
-
-
-def part1(problem: str) -> int:
-    """Part 1 of the problem."""
-    grid = to_grid(problem)
-    (width, height) = get_dim(grid)
-    mask = new_mask(width, height)
-    setup_mask_v1(grid, mask, width, height)
-    check_hash = hash_mask(mask)
-    while True:
-        iterate_mask(grid, mask, width, height)
-        new_check_hash = hash_mask(mask)
-        if new_check_hash == check_hash:
-            break
-        check_hash = new_check_hash
-    masked_grid = mask_grid(grid, mask, width, height)
-    numbers = extract_numbers(masked_grid)
-    total = sum(numbers)
-    return total
 
 
 def extract_numbers(masked_grid: List[List[str]]) -> List[int]:
@@ -162,6 +145,25 @@ def split_masks(
                 masks[current_mask_index][y][x] = "."
                 current_mask_index += 1
     return masks
+
+
+def part1(problem: str) -> int:
+    """Part 1 of the problem."""
+    grid = to_grid(problem)
+    (width, height) = get_dim(grid)
+    mask = new_mask(width, height)
+    setup_mask_v1(grid, mask, width, height)
+    check_hash = hash_mask(mask)
+    while True:
+        iterate_mask(grid, mask, width, height)
+        new_check_hash = hash_mask(mask)
+        if new_check_hash == check_hash:
+            break
+        check_hash = new_check_hash
+    masked_grid = mask_grid(grid, mask, width, height)
+    numbers = extract_numbers(masked_grid)
+    total = sum(numbers)
+    return total
 
 
 def part2(problem: str) -> int:

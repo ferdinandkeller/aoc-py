@@ -6,11 +6,11 @@ authors = ["Ferdinand Keller <ferdinand.keller@proton.me>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
-"day1" = "tests.tests:day1"
-"day2" = "tests.tests:day2"
-"day3" = "tests.tests:day3"
-"day4" = "tests.tests:day4"
-"day5" = "tests.tests:day5"
+"day1" = "tests.tests:test_day1"
+"day2" = "tests.tests:test_day2"
+"day3" = "tests.tests:test_day3"
+"day4" = "tests.tests:test_day4"
+"day5" = "tests.tests:test_day5"
 
 [tool.poetry.dependencies]
 python = "^3.12"

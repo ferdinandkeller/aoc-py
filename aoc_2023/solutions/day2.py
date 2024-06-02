@@ -1,22 +1,11 @@
+"""Solutions for day 2."""
+
 import re
 from typing import Tuple, Dict
 
 
-def part1(input: str) -> int:
-    ok = {"red": 12, "green": 13, "blue": 14}
-    total = 0
-    for line in input.split("\n"):
-        group_details = get_group_details(line)
-        if (
-            group_details[1]["red"] <= ok["red"]
-            and group_details[1]["green"] <= ok["green"]
-            and group_details[1]["blue"] <= ok["blue"]
-        ):
-            total += group_details[0]
-    return total
-
-
 def get_group_details(line: str) -> Tuple[int, Dict[str, int]]:
+    """Get the group details."""
     r1 = re.compile(r"Game (\d+): (.+)")
     r2 = re.compile(r"(\d+) (\w+)")
 
@@ -34,9 +23,25 @@ def get_group_details(line: str) -> Tuple[int, Dict[str, int]]:
     return (group_id, group_top)
 
 
-def part2(input: str) -> int:
+def part1(problem: str) -> int:
+    """Part 1 of the problem."""
+    ok = {"red": 12, "green": 13, "blue": 14}
     total = 0
-    for line in input.split("\n"):
+    for line in problem.split("\n"):
+        group_details = get_group_details(line)
+        if (
+            group_details[1]["red"] <= ok["red"]
+            and group_details[1]["green"] <= ok["green"]
+            and group_details[1]["blue"] <= ok["blue"]
+        ):
+            total += group_details[0]
+    return total
+
+
+def part2(problem: str) -> int:
+    """Part 2 of the problem."""
+    total = 0
+    for line in problem.split("\n"):
         group_details = get_group_details(line)
         group_power = (
             group_details[1]["red"]

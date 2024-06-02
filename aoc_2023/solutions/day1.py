@@ -1,11 +1,8 @@
-def part1(input: str) -> int:
-    total = 0
-    for line in input.split("\n"):
-        total += line_to_number(line)
-    return total
+"""Solutions for day 1."""
 
 
 def line_to_number(line: str) -> int:
+    """Convert a line to a number."""
     chars = []
     for char in line:
         if char.isdigit():
@@ -15,7 +12,8 @@ def line_to_number(line: str) -> int:
     return int(chars[0]) * 10 + int(chars[-1])
 
 
-def processed_line(line: str) -> str:
+def process_line(line: str) -> str:
+    """Process the line to convert text into numbers."""
     line = line.replace("one", "on1e")
     line = line.replace("two", "t2wo")
     line = line.replace("three", "t3hree")
@@ -28,9 +26,17 @@ def processed_line(line: str) -> str:
     return line
 
 
-def part2(input: str) -> int:
-    # replace text with digits
+def part1(problem: str) -> int:
+    """Part 1 of the problem."""
     total = 0
-    for line in input.split("\n"):
-        total += line_to_number(processed_line(line))
+    for line in problem.split("\n"):
+        total += line_to_number(line)
+    return total
+
+
+def part2(problem: str) -> int:
+    """Part 2 of the problem."""
+    total = 0
+    for line in problem.split("\n"):
+        total += line_to_number(process_line(line))
     return total
