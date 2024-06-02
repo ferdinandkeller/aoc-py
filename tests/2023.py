@@ -6,6 +6,7 @@ import aoc_2023.solutions.day2
 import aoc_2023.solutions.day3
 import aoc_2023.solutions.day4
 import aoc_2023.solutions.day5
+import aoc_2023.solutions.day6
 
 
 def test_day1():
@@ -46,3 +47,11 @@ def test_day5():
         problem = f.read()
     print(aoc_2023.solutions.day5.part1(problem))
     print(aoc_2023.solutions.day5.part2(problem))
+
+
+def test_day6():
+    """Test the solutions for day 6."""
+    with open("aoc_2023/inputs/day6.txt", encoding="utf-8") as f:
+        problem = f.read()
+    print(aoc_2023.solutions.day6.part1(problem))
+    print(aoc_2023.solutions.day6.part2(problem))
